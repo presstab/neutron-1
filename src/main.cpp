@@ -15,7 +15,7 @@
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
-#include "darksend.h"
+#include "obfuscation.h"
 #include "masternode.h"
 #include "spork.h"
 

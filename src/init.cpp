@@ -21,7 +21,7 @@
 #include "version.h"
 #include "activemasternode.h"
 #include "spork.h"
-#include "darksend.h"
+#include "obfuscation.h"
 
 #ifndef WIN32
 #include <signal.h>
