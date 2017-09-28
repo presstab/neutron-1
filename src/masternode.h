@@ -53,10 +53,10 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion)
     {
-        READWRITE(vin);
-        READWRITE(blockHash);
-        READWRITE(sigTime);
-        READWRITE(vchSig);
+        READWRITES(vin);
+        READWRITES(blockHash);
+        READWRITES(sigTime);
+        READWRITES(vchSig);
     }
 
     bool CheckAndUpdate(int& nDos, bool fRequireEnabled = true);
@@ -199,22 +199,22 @@ public:
     {
         LOCK(cs);
 
-        READWRITE(vin);
-        READWRITE(addr);
-        READWRITE(pubKeyCollateralAddress);
-        READWRITE(pubKeyMasternode);
-        READWRITE(sig);
-        READWRITE(sigTime);
-        READWRITE(protocolVersion);
-        READWRITE(activeState);
-        READWRITE(lastPing);
-        READWRITE(cacheInputAge);
-        READWRITE(cacheInputAgeBlock);
-        READWRITE(unitTest);
-        READWRITE(allowFreeTx);
-        READWRITE(nLastDsq);
-        READWRITE(nScanningErrorCount);
-        READWRITE(nLastScanningErrorBlockHeight);
+        READWRITES(vin);
+        READWRITES(addr);
+        READWRITES(pubKeyCollateralAddress);
+        READWRITES(pubKeyMasternode);
+        READWRITES(sig);
+        READWRITES(sigTime);
+        READWRITES(protocolVersion);
+        READWRITES(activeState);
+        READWRITES(lastPing);
+        READWRITES(cacheInputAge);
+        READWRITES(cacheInputAgeBlock);
+        READWRITES(unitTest);
+        READWRITES(allowFreeTx);
+        READWRITES(nLastDsq);
+        READWRITES(nScanningErrorCount);
+        READWRITES(nLastScanningErrorBlockHeight);
     }
 
     int64_t SecondsSincePayment();
@@ -255,14 +255,14 @@ public:
 
     int GetMasternodeInputAge()
     {
-        if (chainActive.Tip() == NULL) return 0;
+        if (pindexBest == NULL) return 0;
 
         if (cacheInputAge == 0) {
             cacheInputAge = GetInputAge(vin);
-            cacheInputAgeBlock = chainActive.Tip()->nHeight;
+            cacheInputAgeBlock = nBestHeight;
         }
 
-        return cacheInputAge + (chainActive.Tip()->nHeight - cacheInputAgeBlock);
+        return cacheInputAge + (nBestHeight - cacheInputAgeBlock);
     }
 
     std::string GetStatus();
@@ -306,15 +306,15 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion)
     {
-        READWRITE(vin);
-        READWRITE(addr);
-        READWRITE(pubKeyCollateralAddress);
-        READWRITE(pubKeyMasternode);
-        READWRITE(sig);
-        READWRITE(sigTime);
-        READWRITE(protocolVersion);
-        READWRITE(lastPing);
-        READWRITE(nLastDsq);
+        READWRITES(vin);
+        READWRITES(addr);
+        READWRITES(pubKeyCollateralAddress);
+        READWRITES(pubKeyMasternode);
+        READWRITES(sig);
+        READWRITES(sigTime);
+        READWRITES(protocolVersion);
+        READWRITES(lastPing);
+        READWRITES(nLastDsq);
     }
 
     uint256 GetHash()
