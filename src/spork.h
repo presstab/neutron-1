@@ -85,7 +85,7 @@ public:
 
     uint256 GetHash()
     {
-        uint256 n = HashQuark(BEGIN(nSporkID), END(nTimeSigned));
+        uint256 n = Hash(BEGIN(nSporkID), END(nTimeSigned));
         return n;
     }
 
@@ -94,10 +94,10 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion)
     {
-        READWRITE(nSporkID);
-        READWRITE(nValue);
-        READWRITE(nTimeSigned);
-        READWRITE(vchSig);
+        READWRITES(nSporkID);
+        READWRITES(nValue);
+        READWRITES(nTimeSigned);
+        READWRITES(vchSig);
     }
 };
 

@@ -30,7 +30,7 @@ void ProcessMessageMasternodePayments(CNode* pfrom, std::string& strCommand, CDa
 bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight);
 std::string GetRequiredPaymentsString(int nBlockHeight);
 bool IsBlockValueValid(const CBlock& block, int64_t nExpectedValue, CAmount nMinted);
-void FillBlockPayee(CMutableTransaction& txNew, int64_t nFees, bool fProofOfStake);
+void FillBlockPayee(CTransaction& txNew, int64_t nFees, bool fProofOfStake);
 
 void DumpMasternodePayments();
 
@@ -81,8 +81,8 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion)
     {
-        READWRITE(scriptPubKey);
-        READWRITE(nVotes);
+        READWRITES(scriptPubKey);
+        READWRITES(nVotes);
     }
 };
 
@@ -153,8 +153,8 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion)
     {
-        READWRITE(nBlockHeight);
-        READWRITE(vecPayments);
+        READWRITES(nBlockHeight);
+        READWRITES(vecPayments);
     }
 };
 
@@ -208,10 +208,10 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion)
     {
-        READWRITE(vinMasternode);
-        READWRITE(nBlockHeight);
-        READWRITE(payee);
-        READWRITE(vchSig);
+        READWRITES(vinMasternode);
+        READWRITES(nBlockHeight);
+        READWRITES(payee);
+        READWRITES(vchSig);
     }
 
     std::string ToString()
@@ -283,7 +283,7 @@ public:
     int GetMinMasternodePaymentsProto();
     void ProcessMessageMasternodePayments(CNode* pfrom, std::string& strCommand, CDataStream& vRecv);
     std::string GetRequiredPaymentsString(int nBlockHeight);
-    void FillBlockPayee(CMutableTransaction& txNew, int64_t nFees, bool fProofOfStake);
+    void FillBlockPayee(CTransaction& txNew, int64_t nFees, bool fProofOfStake);
     std::string ToString() const;
     int GetOldestBlock();
     int GetNewestBlock();
@@ -293,8 +293,8 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion)
     {
-        READWRITE(mapMasternodePayeeVotes);
-        READWRITE(mapMasternodeBlocks);
+        READWRITES(mapMasternodePayeeVotes);
+        READWRITES(mapMasternodeBlocks);
     }
 };
 

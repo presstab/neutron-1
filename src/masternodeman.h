@@ -81,14 +81,14 @@ public:
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion)
     {
         LOCK(cs);
-        READWRITE(vMasternodes);
-        READWRITE(mAskedUsForMasternodeList);
-        READWRITE(mWeAskedForMasternodeList);
-        READWRITE(mWeAskedForMasternodeListEntry);
-        READWRITE(nDsqCount);
+        READWRITES(vMasternodes);
+        READWRITES(mAskedUsForMasternodeList);
+        READWRITES(mWeAskedForMasternodeList);
+        READWRITES(mWeAskedForMasternodeListEntry);
+        READWRITES(nDsqCount);
 
-        READWRITE(mapSeenMasternodeBroadcast);
-        READWRITE(mapSeenMasternodePing);
+        READWRITES(mapSeenMasternodeBroadcast);
+        READWRITES(mapSeenMasternodePing);
     }
 
     CMasternodeMan();
