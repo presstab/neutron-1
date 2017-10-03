@@ -46,6 +46,9 @@ class CActiveMasternode;
 #define OBFUSCATION_RELAY_OUT 2
 #define OBFUSCATION_RELAY_SIG 3
 
+#define OBFUSCATION_DUMMY_ADDRESS "D87q2gC9j6nNrnzCsg4aY6bHMLsT9nUhEw"
+#define OBFUSCATION_POOL_MAX_TX 3
+
 static const CAmount OBFUSCATION_COLLATERAL = (10 * COIN);
 static const CAmount OBFUSCATION_POOL_MAX = (99999.99 * COIN);
 
@@ -182,11 +185,11 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion)
     {
-        READWRITE(nDenom);
-        READWRITE(vin);
-        READWRITE(time);
-        READWRITE(ready);
-        READWRITE(vchSig);
+        READWRITES(nDenom);
+        READWRITES(vin);
+        READWRITES(time);
+        READWRITES(ready);
+        READWRITES(vchSig);
     }
 
     bool GetAddress(CService& addr)
@@ -267,7 +270,7 @@ private:
     mutable CCriticalSection cs_obfuscation;
 
     std::vector<CObfuScationEntry> entries; // Masternode/clients entries
-    CMutableTransaction finalTransaction;   // the finalized transaction ready for signing
+    CTransaction finalTransaction;   // the finalized transaction ready for signing
 
     int64_t lastTimeChanged; // last time the 'state' changed, in UTC milliseconds
 
@@ -290,7 +293,7 @@ private:
     int cachedLastSuccess;
 
     int minBlockSpacing; //required blocks between mixes
-    CMutableTransaction txCollateral;
+    CTransaction txCollateral;
 
     int64_t lastNewBlock;
 
@@ -338,7 +341,7 @@ public:
         cachedLastSuccess = 0;
         cachedNumBlocks = std::numeric_limits<int>::max();
         unitTest = false;
-        txCollateral = CMutableTransaction();
+        txCollateral = CTransaction();
         minBlockSpacing = 0;
         lastNewBlock = 0;
 
@@ -364,7 +367,7 @@ public:
 
     void InitCollateralAddress()
     {
-        SetCollateralAddress(Params().ObfuscationPoolDummyAddress());
+        SetCollateralAddress(OBFUSCATION_DUMMY_ADDRESS);
     }
 
     void SetMinBlockSpacing(int minBlockSpacingIn)
@@ -411,11 +414,12 @@ public:
     void UpdateState(unsigned int newState)
     {
         if (fMasterNode && (newState == POOL_STATUS_ERROR || newState == POOL_STATUS_SUCCESS)) {
-            LogPrint("obfuscation", "CObfuscationPool::UpdateState() - Can't set state to ERROR or SUCCESS as a Masternode. \n");
+            if (fDebug)
+             printf("obfuscation", "CObfuscationPool::UpdateState() - Can't set state to ERROR or SUCCESS as a Masternode. \n");
             return;
         }
 
-        LogPrintf("CObfuscationPool::UpdateState() == %d | %d \n", state, newState);
+        printf("CObfuscationPool::UpdateState() == %d | %d \n", state, newState);
         if (state != newState) {
             lastTimeChanged = GetTimeMillis();
             if (fMasterNode) {
@@ -428,7 +432,7 @@ public:
     /// Get the maximum number of transactions for the pool
     int GetMaxPoolTransactions()
     {
-        return Params().PoolMaxTransactions();
+        return OBFUSCATION_POOL_MAX_TX;
     }
 
     /// Do we have enough users to take entries?

@@ -4,26 +4,26 @@
 #include <QDialog>
 
 namespace Ui {
-    class DarksendConfig;
+    class ObfuscationConfig;
 }
 class WalletModel;
 
 /** Multifunctional dialog to ask for passphrases. Used for encryption, unlocking, and changing the passphrase.
  */
-class DarksendConfig : public QDialog
+class ObfuscationConfig : public QDialog
 {
     Q_OBJECT
 
 public:
 
-    DarksendConfig(QWidget *parent = 0);
-    ~DarksendConfig();
+    ObfuscationConfig(QWidget *parent = 0);
+    ~ObfuscationConfig();
 
     void setModel(WalletModel *model);
 
 
 private:
-    Ui::DarksendConfig *ui;
+    Ui::ObfuscationConfig *ui;
     WalletModel *model;
     void configure(bool enabled, int coins, int rounds);
 

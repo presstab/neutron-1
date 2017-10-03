@@ -157,6 +157,7 @@ HEADERS += src/qt/bitcoingui.h \
     src/util.h \
     src/uint256.h \
     src/kernel.h \
+    src/swifttx.h \
     src/scrypt.h \
     src/pbkdf2.h \
     src/serialize.h \
@@ -293,6 +294,7 @@ SOURCES += src/qt/bitcoin.cpp src/qt/bitcoingui.cpp \
     src/rpcdarksend.cpp \
     src/activemasternode.cpp \
     src/spork.cpp \
+    src/swifttx.cpp \
     src/masternodeconfig.cpp \
     src/obfuscation.cpp \
     src/qt/addeditadrenalinenode.cpp \

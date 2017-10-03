@@ -9,7 +9,7 @@
 #include "strlcpy.h"
 #include "addrman.h"
 #include "ui_interface.h"
-#include "darksend.h"
+#include "obfuscation.h"
 #include "wallet.h"
 
 #ifdef WIN32

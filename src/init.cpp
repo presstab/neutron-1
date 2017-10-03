@@ -22,6 +22,7 @@
 #include "activemasternode.h"
 #include "spork.h"
 #include "obfuscation.h"
+#include "masternodeconfig.h"
 
 #ifndef WIN32
 #include <signal.h>
@@ -316,7 +317,7 @@ std::string HelpMessage()
         "  -rpcsslcertificatechainfile=<file.cert>  " + _("Server certificate file (default: server.cert)") + "\n" +
         "  -rpcsslprivatekeyfile=<file.pem>         " + _("Server private key (default: server.pem)") + "\n" +
         "  -rpcsslciphers=<ciphers>                 " + _("Acceptable ciphers (default: TLSv1+HIGH:!SSLv2:!aNULL:!eNULL:!AH:!3DES:@STRENGTH)") + "\n";
-    strUsage += "  -litemode=<n>          " + _("Disable all Masternode and Darksend related functionality (0-1, default: 0)") + "\n";
+    strUsage += "  -litemode=<n>          " + _("Disable all Masternode and Obfuscation related functionality (0-1, default: 0)") + "\n";
 strUsage += "\n" + _("Masternode options:") + "\n";
     strUsage += "  -masternode=<n>            " + _("Enable the client to act as a masternode (0-1, default: 0)") + "\n";
     strUsage += "  -mnconf=<file>             " + _("Specify masternode configuration file (default: masternode.conf)") + "\n";
@@ -324,11 +325,11 @@ strUsage += "\n" + _("Masternode options:") + "\n";
     strUsage += "  -masternodeaddr=<n>        " + _("Set external address:port to get to this masternode (example: address:port)") + "\n";
     strUsage += "  -masternodeminprotocol=<n> " + _("Ignore masternodes less than version (example: 70007; default : 0)") + "\n";
 
-    strUsage += "\n" + _("Darksend options:") + "\n";
+    strUsage += "\n" + _("Obfuscation options:") + "\n";
     strUsage += "  -enabledarksend=<n>          " + _("Enable use of automated darksend for funds stored in this wallet (0-1, default: 0)") + "\n";
     strUsage += "  -darksendrounds=<n>          " + _("Use N separate masternodes to anonymize funds  (2-8, default: 2)") + "\n";
     strUsage += "  -anonymizeNeutronamount=<n> " + _("Keep N Neutron anonymized (default: 0)") + "\n";
-    strUsage += "  -liquidityprovider=<n>       " + _("Provide liquidity to Darksend by infrequently mixing coins on a continual basis (0-100, default: 0, 1=very frequent, high fees, 100=very infrequent, low fees)") + "\n";
+    strUsage += "  -liquidityprovider=<n>       " + _("Provide liquidity to Obfuscation by infrequently mixing coins on a continual basis (0-100, default: 0, 1=very frequent, high fees, 100=very infrequent, low fees)") + "\n";
 
     return strUsage;
 }
@@ -539,18 +540,6 @@ bool AppInit2()
     printf("Default data directory %s\n", GetDefaultDataDir().string().c_str());
     printf("Used data directory %s\n", strDataDir.c_str());
     std::ostringstream strErrors;
-
-    if (mapArgs.count("-masternodepaymentskey")) // masternode payments priv key
-    {
-        if (!masternodePayments.SetPrivKey(GetArg("-masternodepaymentskey", "")))
-            return InitError(_("Unable to sign masternode payment winner, wrong key?"));
-        if (!sporkManager.SetPrivKey(GetArg("-masternodepaymentskey", "")))
-            return InitError(_("Unable to sign spork message, wrong key?"));
-    }
-
-    //ignore masternodes below protocol version
-    CMasterNode::minProtoVersion = GetArg("-masternodeminprotocol", MIN_MN_PROTO_VERSION);
-
 
     if (fDaemon)
         fprintf(stdout, "Neutron server starting\n");
@@ -766,16 +755,6 @@ bool AppInit2()
         return false;
     }
 
-    // ********************************************************* Testing Zerocoin
-
-
-    if (GetBoolArg("-zerotest", false))
-    {
-        printf("\n=== ZeroCoin tests start ===\n");
-        Test_RunAllTests();
-        printf("=== ZeroCoin tests end ===\n\n");
-    }
-
     // ********************************************************* Step 8: load wallet
 
     uiInterface.InitMessage(_("Loading wallet..."));
@@ -903,17 +882,46 @@ bool AppInit2()
 
     // ********************************************************* Step 11: start node
 
-    if (!CheckDiskSpace())
-        return false;
+    // ********************************************************* Step 10: setup ObfuScation
+
+    uiInterface.InitMessage(_("Loading masternode cache..."));
+
+    CMasternodeDB mndb;
+    CMasternodeDB::ReadResult readResult = mndb.Read(mnodeman);
+    if (readResult == CMasternodeDB::FileError)
+        printf("Missing masternode cache file - mncache.dat, will try to recreate\n");
+    else if (readResult != CMasternodeDB::Ok) {
+        printf("Error reading mncache.dat: ");
+        if (readResult == CMasternodeDB::IncorrectFormat)
+            printf("magic is ok but data has invalid format, will try to recreate\n");
+        else
+            printf("file format is unknown or invalid, please fix it manually\n");
+    }
+
+    uiInterface.InitMessage(_("Loading masternode payment cache..."));
+
+    CMasternodePaymentDB mnpayments;
+    CMasternodePaymentDB::ReadResult readResult3 = mnpayments.Read(masternodePayments);
+
+    if (readResult3 == CMasternodePaymentDB::FileError)
+        printf("Missing masternode payment cache - mnpayments.dat, will try to recreate\n");
+    else if (readResult3 != CMasternodePaymentDB::Ok) {
+        printf("Error reading mnpayments.dat: ");
+        if (readResult3 == CMasternodePaymentDB::IncorrectFormat)
+            printf("magic is ok but data has invalid format, will try to recreate\n");
+        else
+            printf("file format is unknown or invalid, please fix it manually\n");
+    }
 
     fMasterNode = GetBoolArg("-masternode", false);
-    if(fMasterNode) {
-        printf("IS DARKSEND MASTER NODE\n");
+
+    if (fMasterNode) {
+        printf("IS OBFUSCATION MASTER NODE\n");
         strMasterNodeAddr = GetArg("-masternodeaddr", "");
 
         printf(" addr %s\n", strMasterNodeAddr.c_str());
 
-        if(!strMasterNodeAddr.empty()){
+        if (!strMasterNodeAddr.empty()) {
             CService addrTest = CService(strMasterNodeAddr);
             if (!addrTest.IsValid()) {
                 return InitError("Invalid -masternodeaddr address: " + strMasterNodeAddr);
@@ -921,14 +929,13 @@ bool AppInit2()
         }
 
         strMasterNodePrivKey = GetArg("-masternodeprivkey", "");
-        if(!strMasterNodePrivKey.empty()){
+        if (!strMasterNodePrivKey.empty()) {
             std::string errorMessage;
 
             CKey key;
             CPubKey pubkey;
 
-            if(!darkSendSigner.SetKey(strMasterNodePrivKey, errorMessage, key, pubkey))
-            {
+            if (!obfuScationSigner.SetKey(strMasterNodePrivKey, errorMessage, key, pubkey)) {
                 return InitError(_("Invalid masternodeprivkey. Please see documenation."));
             }
 
@@ -939,35 +946,52 @@ bool AppInit2()
         }
     }
 
-    fEnableDarksend = GetBoolArg("-enabledarksend", false);
-
-    nDarksendRounds = GetArg("-darksendrounds", 2);
-    if(nDarksendRounds > 16) nDarksendRounds = 16;
-    if(nDarksendRounds < 1) nDarksendRounds = 1;
-
-    nLiquidityProvider = GetArg("-liquidityprovider", 0); //0-100
-    if(nLiquidityProvider != 0) {
-        darkSendPool.SetMinBlockSpacing(std::min(nLiquidityProvider,100)*15);
-        fEnableDarksend = true;
-        nDarksendRounds = 99999;
+    if (GetBoolArg("-mnconflock", true) && pwalletMain) {
+        LOCK(pwalletMain->cs_wallet);
+        printf("Locking Masternodes:\n");
+        uint256 mnTxHash;
+        BOOST_FOREACH (CMasternodeConfig::CMasternodeEntry mne, masternodeConfig.getEntries()) {
+                        printf("  %s %s\n", mne.getTxHash(), mne.getOutputIndex());
+                        mnTxHash.SetHex(mne.getTxHash());
+                        COutPoint outpoint = COutPoint(mnTxHash, boost::lexical_cast<unsigned int>(mne.getOutputIndex()));
+                        pwalletMain->LockCoin(outpoint);
+                    }
     }
 
-    nAnonymizeNeutronAmount = GetArg("-anonymizeNeutronamount", 0);
-    if(nAnonymizeNeutronAmount > 999999) nAnonymizeNeutronAmount = 999999;
-    if(nAnonymizeNeutronAmount < 2) nAnonymizeNeutronAmount = 2;
+    fEnableObfuscation = GetBoolArg("-enableobfuscation", false);
 
-    //lite mode disables all Masternode and Darksend related functionality
+    nObfuscationRounds = GetArg("-obfuscationrounds", 2);
+    if (nObfuscationRounds > 16) nObfuscationRounds = 16;
+    if (nObfuscationRounds < 1) nObfuscationRounds = 1;
+
+    nLiquidityProvider = GetArg("-liquidityprovider", 0); //0-100
+    if (nLiquidityProvider != 0) {
+        obfuScationPool.SetMinBlockSpacing(std::min(nLiquidityProvider, 100) * 15);
+        fEnableObfuscation = true;
+        nObfuscationRounds = 99999;
+    }
+
+    nAnonymizeNeutronAmount = GetArg("-anonymizeneutronamount", 0);
+    if (nAnonymizeNeutronAmount > 999999) nAnonymizeNeutronAmount = 999999;
+    if (nAnonymizeNeutronAmount < 2) nAnonymizeNeutronAmount = 2;
+
+    fEnableSwiftTX = GetBoolArg("-enableswifttx", fEnableSwiftTX);
+    nSwiftTXDepth = GetArg("-swifttxdepth", nSwiftTXDepth);
+    nSwiftTXDepth = std::min(std::max(nSwiftTXDepth, 0), 60);
+
+    //lite mode disables all Masternode and Obfuscation related functionality
     fLiteMode = GetBoolArg("-litemode", false);
-    if(fMasterNode && fLiteMode){
+    if (fMasterNode && fLiteMode) {
         return InitError("You can not start a masternode in litemode");
     }
 
     printf("fLiteMode %d\n", fLiteMode);
-    printf("Darksend rounds %d\n", nDarksendRounds);
-    printf("Anonymize Neutron Amount %d\n", nAnonymizeNeutronAmount);
+    printf("nSwiftTXDepth %d\n", nSwiftTXDepth);
+    printf("Obfuscation rounds %d\n", nObfuscationRounds);
+    printf("Anonymize PIVX Amount %d\n", nAnonymizePivxAmount);
 
     /* Denominations
-       A note about convertability. Within Darksend pools, each denomination
+       A note about convertability. Within Obfuscation pools, each denomination
        is convertable to another.
        For example:
        1Neutron+1000 == (.1Neutron+100)*10
@@ -985,19 +1009,12 @@ bool AppInit2()
     darkSendDenominations.push_back( (.001     * COIN)+1 );
     */
 
-    darkSendPool.InitCollateralAddress();
+    obfuScationPool.InitCollateralAddress();
 
-    NewThread(ThreadCheckDarkSendPool, NULL);
+    NewThread(ThreadCheckObfuScationPool, NULL);
 
 
     RandAddSeedPerfmon();
-
-    //// debug print
-    printf("mapBlockIndex.size() = %" PRIszu "\n",   mapBlockIndex.size());
-    printf("nBestHeight = %d\n",            nBestHeight);
-    printf("setKeyPool.size() = %" PRIszu "\n",      pwalletMain->setKeyPool.size());
-    printf("mapWallet.size() = %" PRIszu "\n",       pwalletMain->mapWallet.size());
-    printf("mapAddressBook.size() = %" PRIszu "\n",  pwalletMain->mapAddressBook.size());
 
     if (!NewThread(StartNode, NULL))
         InitError(_("Error: could not start node"));

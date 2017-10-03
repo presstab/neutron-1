@@ -11,13 +11,16 @@
 #include "init.h"
 #include "ui_interface.h"
 #include "kernel.h"
-#include "zerocoin/Zerocoin.h"
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include "obfuscation.h"
-#include "masternode.h"
+#include "masternode-budget.h"
+#include "masternode-payments.h"
+#include "masternodeman.h"
+#include "obfuscation.h"
 #include "spork.h"
+#include "swifttx.h"
 
 #include <stdio.h>
 
@@ -38,7 +41,6 @@ unsigned int nTransactionsUpdated = 0;
 
 map<uint256, CBlockIndex*> mapBlockIndex;
 set<pair<COutPoint, unsigned int> > setStakeSeen;
-libzerocoin::Params* ZCParams;
 
 CBigNum bnProofOfWorkLimit(~uint256(0) >> 20); // Starting Difficulty: results with 0,000244140625 proof-of-work difficulty
 CBigNum bnProofOfStakeLimit(~uint256(0) >> 20);
@@ -637,7 +639,7 @@ bool AcceptableInputs(CTxMemPool& pool, const CTransaction &txo, bool fLimitFree
         // Don't accept it if it can't get into a block
         int64_t txMinFee = tx.GetMinFee(1000, GMF_RELAY, nSize);
         if ((fLimitFree && nFees < txMinFee) || (!fLimitFree && nFees < MIN_TX_FEE))
-            return error("AcceptableInputs : not enough fees %s, %d < %d",
+            return error("AcceptableInputs : not enough fees %s, %ld < %ld",
                          hash.ToString().c_str(),
                          nFees, txMinFee);
 
@@ -2391,7 +2393,7 @@ bool CBlock::CheckBlock(bool fCheckPOW, bool fCheckMerkleRoot, bool fCheckSig) c
                         ExtractDestination(payee, address1);
                         CBitcoinAddress address2(address1);
 
-                        if(fDebug) { printf("CheckBlock() : Couldn't find masternode payment(%d|%d) or payee(%d|%s) nHeight %d. \n", foundPaymentAmount, masternodePaymentAmount, foundPayee, address2.ToString().c_str(), pindexBest->nHeight+1); }
+                        if(fDebug) { printf("CheckBlock() : Couldn't find masternode payment(%d|%ld) or payee(%d|%s) nHeight %d. \n", foundPaymentAmount, masternodePaymentAmount, foundPayee, address2.ToString().c_str(), pindexBest->nHeight+1); }
                         return DoS(100, error("CheckBlock() : Couldn't find masternode payment or payee"));
                     } else {
                         if(fDebug) { printf("CheckBlock() : Found masternode payment %d\n", pindexBest->nHeight+1); }
@@ -3178,10 +3180,27 @@ bool static AlreadyHave(CTxDB& txdb, const CInv& inv)
     case MSG_BLOCK:
         return mapBlockIndex.count(inv.hash) ||
                 mapOrphanBlocks.count(inv.hash);
+    case MSG_TXLOCK_REQUEST:
+        return mapTxLockReq.count(inv.hash) ||
+               mapTxLockReqRejected.count(inv.hash);
+    case MSG_TXLOCK_VOTE:
+        return mapTxLockVote.count(inv.hash);
     case MSG_SPORK:
         return mapSporks.count(inv.hash);
     case MSG_MASTERNODE_WINNER:
-        return mapSeenMasternodeVotes.count(inv.hash);
+        if (masternodePayments.mapMasternodePayeeVotes.count(inv.hash)) {
+            masternodeSync.AddedMasternodeWinner(inv.hash);
+            return true;
+        }
+        return false;
+    case MSG_MASTERNODE_ANNOUNCE:
+        if (mnodeman.mapSeenMasternodeBroadcast.count(inv.hash)) {
+            masternodeSync.AddedMasternodeList(inv.hash);
+            return true;
+        }
+        return false;
+    case MSG_MASTERNODE_PING:
+        return mnodeman.mapSeenMasternodePing.count(inv.hash);
 
     }
     // Don't know what it is, just say we already got one
@@ -3519,14 +3538,14 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
                     }
                 }
                 if (!pushed && inv.type == MSG_TX) {
-                    if(mapDarksendBroadcastTxes.count(inv.hash)){
+                    if(mapObfuscationBroadcastTxes.count(inv.hash)){
                         CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
                         ss.reserve(1000);
                         ss <<
-                            mapDarksendBroadcastTxes[inv.hash].tx <<
-                            mapDarksendBroadcastTxes[inv.hash].vin <<
-                            mapDarksendBroadcastTxes[inv.hash].vchSig <<
-                            mapDarksendBroadcastTxes[inv.hash].sigTime;
+                            mapObfuscationBroadcastTxes[inv.hash].tx <<
+                            mapObfuscationBroadcastTxes[inv.hash].vin <<
+                            mapObfuscationBroadcastTxes[inv.hash].vchSig <<
+                            mapObfuscationBroadcastTxes[inv.hash].sigTime;
 
                         pfrom->PushMessage("dstx", ss);
                         pushed = true;
@@ -3551,11 +3570,11 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
                     }
                 }
                 if (!pushed && inv.type == MSG_MASTERNODE_WINNER) {
-                    if(mapSeenMasternodeVotes.count(inv.hash)){
+                    if(budget.mapSeenMasternodeBudgetVotes.count(inv.hash)){
                         CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
                         int a = 0;
                         ss.reserve(1000);
-                        ss << mapSeenMasternodeVotes[inv.hash] << a;
+                        ss << budget.mapSeenMasternodeBudgetVotes[inv.hash] << a;
                         pfrom->PushMessage("mnw", ss);
                         pushed = true;
                     }
@@ -3675,37 +3694,36 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
             //these allow masternodes to publish a limited amount of free transactions
             vRecv >> tx >> vin >> vchSig >> sigTime;
 
-            BOOST_FOREACH(CMasterNode& mn, vecMasternodes) {
-                if(mn.vin == vin) {
-                    if(!mn.allowFreeTx){
-                        //multiple peers can send us a valid masternode transaction
-                        if(fDebug) printf("dstx: Masternode sending too many transactions %s\n", tx.GetHash().ToString().c_str());
-                        return true;
-                    }
+            CMasternode* pmn = mnodeman.Find(vin);
+            if (pmn != NULL) {
+                if (!pmn->allowFreeTx) {
+                    //multiple peers can send us a valid masternode transaction
+                    if (fDebug) printf("dstx: Masternode sending too many transactions %s\n", tx.GetHash().ToString().c_str());
+                    return true;
+                }
 
-                    std::string strMessage = tx.GetHash().ToString() + boost::lexical_cast<std::string>(sigTime);
+                std::string strMessage = tx.GetHash().ToString() + boost::lexical_cast<std::string>(sigTime);
 
-                    std::string errorMessage = "";
-                    if(!darkSendSigner.VerifyMessage(mn.pubkey2, vchSig, strMessage, errorMessage)){
-                        printf("dstx: Got bad masternode address signature %s \n", vin.ToString().c_str());
-                        //pfrom->Misbehaving(20);
-                        return false;
-                    }
+                std::string errorMessage = "";
+                if (!obfuScationSigner.VerifyMessage(pmn->pubKeyMasternode, vchSig, strMessage, errorMessage)) {
+                    printf("dstx: Got bad masternode address signature %s \n", vin.ToString().c_str());
+                    //pfrom->Misbehaving(20);
+                    return false;
+                }
 
-                    printf("dstx: Got Masternode transaction %s\n", tx.GetHash().ToString().c_str());
+                printf("dstx: Got Masternode transaction %s\n", tx.GetHash().ToString().c_str());
 
-                    allowFree = true;
-                    mn.allowFreeTx = false;
+                allowFree = true;
+                pmn->allowFreeTx = false;
 
-                    if(!mapDarksendBroadcastTxes.count(tx.GetHash())){
-                        CDarksendBroadcastTx dstx;
-                        dstx.tx = tx;
-                        dstx.vin = vin;
-                        dstx.vchSig = vchSig;
-                        dstx.sigTime = sigTime;
+                if (!mapObfuscationBroadcastTxes.count(tx.GetHash())) {
+                    CObfuscationBroadcastTx dstx;
+                    dstx.tx = tx;
+                    dstx.vin = vin;
+                    dstx.vchSig = vchSig;
+                    dstx.sigTime = sigTime;
 
-                        mapDarksendBroadcastTxes.insert(make_pair(tx.GetHash(), dstx));
-                    }
+                    mapObfuscationBroadcastTxes.insert(make_pair(tx.GetHash(), dstx));
                 }
             }
         }
@@ -3916,9 +3934,14 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
     else
     {
 
-        ProcessMessageDarksend(pfrom, strCommand, vRecv);
-        ProcessMessageMasternode(pfrom, strCommand, vRecv);
+        //probably one the extensions
+        obfuScationPool.ProcessMessageObfuscation(pfrom, strCommand, vRecv);
+        mnodeman.ProcessMessage(pfrom, strCommand, vRecv);
+        budget.ProcessMessage(pfrom, strCommand, vRecv);
+        masternodePayments.ProcessMessageMasternodePayments(pfrom, strCommand, vRecv);
+        ProcessMessageSwiftTX(pfrom, strCommand, vRecv);
         ProcessSpork(pfrom, strCommand, vRecv);
+        masternodeSync.ProcessMessage(pfrom, strCommand, vRecv);
 
         // Ignore unknown commands for extensibility
     }

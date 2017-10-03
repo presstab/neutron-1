@@ -48,13 +48,13 @@ void OptionsModel::Init()
     nReserveBalance = settings.value("nReserveBalance").toLongLong();
     language = settings.value("language", "").toString();
 
-    if (!settings.contains("nDarksendRounds"))
-        settings.setValue("nDarksendRounds", 2);
+    if (!settings.contains("nObfuscationRounds"))
+        settings.setValue("nObfuscationRounds", 2);
 
     if (!settings.contains("nAnonymizeNeutronAmount"))
         settings.setValue("nAnonymizeNeutronAmount", 1000);
 
-    nDarksendRounds = settings.value("nDarksendRounds").toLongLong();
+    nObfuscationRounds = settings.value("nObfuscationRounds").toLongLong();
     nAnonymizeNeutronAmount = settings.value("nAnonymizeNeutronAmount").toLongLong();
 
     // These are shared with core Bitcoin; we want
@@ -69,8 +69,8 @@ void OptionsModel::Init()
         SoftSetBoolArg("-detachdb", settings.value("detachDB").toBool());
     if (!language.isEmpty())
         SoftSetArg("-lang", language.toStdString());
-    if (settings.contains("nDarksendRounds"))
-        SoftSetArg("-darksendrounds", settings.value("nDarksendRounds").toString().toStdString());
+    if (settings.contains("nObfuscationRounds"))
+        SoftSetArg("-darksendrounds", settings.value("nObfuscationRounds").toString().toStdString());
     if (settings.contains("nAnonymizeNeutronAmount"))
         SoftSetArg("-anonymizeneutronamount", settings.value("nAnonymizeNeutronAmount").toString().toStdString());
  }
@@ -227,10 +227,10 @@ bool OptionsModel::setData(const QModelIndex & index, const QVariant & value, in
             emit coinControlFeaturesChanged(fCoinControlFeatures);
             }
             break;
-        case DarksendRounds:
-            nDarksendRounds = value.toInt();
-            settings.setValue("nDarksendRounds", nDarksendRounds);
-            emit darksendRoundsChanged(nDarksendRounds);
+        case ObfuscationRounds:
+            nObfuscationRounds = value.toInt();
+            settings.setValue("nObfuscationRounds", nObfuscationRounds);
+            emit darksendRoundsChanged(nObfuscationRounds);
             break;
         case anonymizeNeutronAmount:
             nAnonymizeNeutronAmount = value.toInt();

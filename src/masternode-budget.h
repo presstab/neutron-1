@@ -93,11 +93,11 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion)
     {
-        READWRITE(vin);
-        READWRITE(nProposalHash);
-        READWRITE(nVote);
-        READWRITE(nTime);
-        READWRITE(vchSig);
+        READWRITES(vin);
+        READWRITES(nProposalHash);
+        READWRITES(nVote);
+        READWRITES(nTime);
+        READWRITES(vchSig);
     }
 };
 
@@ -136,10 +136,10 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion)
     {
-        READWRITE(vin);
-        READWRITE(nBudgetHash);
-        READWRITE(nTime);
-        READWRITE(vchSig);
+        READWRITES(vin);
+        READWRITES(nBudgetHash);
+        READWRITES(nTime);
+        READWRITES(vchSig);
     }
 };
 
@@ -237,14 +237,14 @@ public:
     bool PropExists(uint256 nHash);
     bool IsTransactionValid(const CTransaction& txNew, int nBlockHeight);
     std::string GetRequiredPaymentsString(int nBlockHeight);
-    void FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, bool fProofOfStake);
+    void FillBlockPayee(CTransaction& txNew, CAmount nFees, bool fProofOfStake);
 
     void CheckOrphanVotes();
     void Clear()
     {
         LOCK(cs);
 
-        LogPrintf("Budget object cleared\n");
+        printf("Budget object cleared\n");
         mapProposals.clear();
         mapFinalizedBudgets.clear();
         mapSeenMasternodeBudgetProposals.clear();
@@ -263,15 +263,15 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion)
     {
-        READWRITE(mapSeenMasternodeBudgetProposals);
-        READWRITE(mapSeenMasternodeBudgetVotes);
-        READWRITE(mapSeenFinalizedBudgets);
-        READWRITE(mapSeenFinalizedBudgetVotes);
-        READWRITE(mapOrphanMasternodeBudgetVotes);
-        READWRITE(mapOrphanFinalizedBudgetVotes);
+        READWRITES(mapSeenMasternodeBudgetProposals);
+        READWRITES(mapSeenMasternodeBudgetVotes);
+        READWRITES(mapSeenFinalizedBudgets);
+        READWRITES(mapSeenFinalizedBudgetVotes);
+        READWRITES(mapOrphanMasternodeBudgetVotes);
+        READWRITES(mapOrphanFinalizedBudgetVotes);
 
-        READWRITE(mapProposals);
-        READWRITE(mapFinalizedBudgets);
+        READWRITES(mapProposals);
+        READWRITES(mapFinalizedBudgets);
     }
 };
 
@@ -296,9 +296,9 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion)
     {
-        READWRITE(payee);
-        READWRITE(nAmount);
-        READWRITE(nProposalHash);
+        READWRITES(payee);
+        READWRITES(nAmount);
+        READWRITES(nProposalHash);
     }
 };
 
@@ -387,14 +387,14 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion)
     {
-        READWRITE(LIMITED_STRING(strBudgetName, 20));
-        READWRITE(nFeeTXHash);
-        READWRITE(nTime);
-        READWRITE(nBlockStart);
-        READWRITE(vecBudgetPayments);
-        READWRITE(fAutoChecked);
+        READWRITES(LIMITED_STRING(strBudgetName, 20));
+        READWRITES(nFeeTXHash);
+        READWRITES(nTime);
+        READWRITES(nBlockStart);
+        READWRITES(vecBudgetPayments);
+        READWRITES(fAutoChecked);
 
-        READWRITE(mapVotes);
+        READWRITES(mapVotes);
     }
 };
 
@@ -439,10 +439,10 @@ public:
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion)
     {
         //for syncing with other clients
-        READWRITE(LIMITED_STRING(strBudgetName, 20));
-        READWRITE(nBlockStart);
-        READWRITE(vecBudgetPayments);
-        READWRITE(nFeeTXHash);
+        READWRITES(LIMITED_STRING(strBudgetName, 20));
+        READWRITES(nBlockStart);
+        READWRITES(vecBudgetPayments);
+        READWRITES(nFeeTXHash);
     }
 };
 
@@ -491,7 +491,7 @@ public:
     bool IsEstablished()
     {
         //Proposals must be at least a day old to make it into a budget
-        if (Params().NetworkID() == CBaseChainParams::MAIN) return (nTime < GetTime() - (60 * 60 * 24));
+        if (!fTestNet) return (nTime < GetTime() - (60 * 60 * 24));
 
         //for testing purposes - 4 hours
         return (nTime < GetTime() - (60 * 5));
@@ -537,18 +537,18 @@ public:
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion)
     {
         //for syncing with other clients
-        READWRITE(LIMITED_STRING(strProposalName, 20));
-        READWRITE(LIMITED_STRING(strURL, 64));
-        READWRITE(nTime);
-        READWRITE(nBlockStart);
-        READWRITE(nBlockEnd);
-        READWRITE(nAmount);
-        READWRITE(address);
-        READWRITE(nTime);
-        READWRITE(nFeeTXHash);
+        READWRITES(LIMITED_STRING(strProposalName, 20));
+        READWRITES(LIMITED_STRING(strURL, 64));
+        READWRITES(nTime);
+        READWRITES(nBlockStart);
+        READWRITES(nBlockEnd);
+        READWRITES(nAmount);
+        READWRITES(address);
+        READWRITES(nTime);
+        READWRITES(nFeeTXHash);
 
         //for saving to the serialized db
-        READWRITE(mapVotes);
+        READWRITES(mapVotes);
     }
 };
 
@@ -594,14 +594,14 @@ public:
     {
         //for syncing with other clients
 
-        READWRITE(LIMITED_STRING(strProposalName, 20));
-        READWRITE(LIMITED_STRING(strURL, 64));
-        READWRITE(nTime);
-        READWRITE(nBlockStart);
-        READWRITE(nBlockEnd);
-        READWRITE(nAmount);
-        READWRITE(address);
-        READWRITE(nFeeTXHash);
+        READWRITES(LIMITED_STRING(strProposalName, 20));
+        READWRITES(LIMITED_STRING(strURL, 64));
+        READWRITES(nTime);
+        READWRITES(nBlockStart);
+        READWRITES(nBlockEnd);
+        READWRITES(nAmount);
+        READWRITES(address);
+        READWRITES(nFeeTXHash);
     }
 };
 

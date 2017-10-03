@@ -103,8 +103,8 @@ private:
 public:
     mutable CCriticalSection cs_wallet;
 
-    bool SelectCoinsDark(int64_t nValueMin, int64_t nValueMax, std::vector<CTxIn>& setCoinsRet, int64_t& nValueRet, int nDarksendRoundsMin, int nDarksendRoundsMax) const;
-    bool SelectCoinsByDenominations(int nDenom, int64_t nValueMin, int64_t nValueMax, std::vector<CTxIn>& setCoinsRet, std::vector<COutput>& vCoins, int64_t& nValueRet, int nDarksendRoundsMin, int nDarksendRoundsMax);
+    bool SelectCoinsDark(int64_t nValueMin, int64_t nValueMax, std::vector<CTxIn>& setCoinsRet, int64_t& nValueRet, int nObfuscationRoundsMin, int nObfuscationRoundsMax) const;
+    bool SelectCoinsByDenominations(int nDenom, int64_t nValueMin, int64_t nValueMax, std::vector<CTxIn>& setCoinsRet, std::vector<COutput>& vCoins, int64_t& nValueRet, int nObfuscationRoundsMin, int nObfuscationRoundsMax);
     bool SelectCoinsDarkDenominated(int64_t nTargetValue, std::vector<CTxIn>& setCoinsRet, int64_t& nValueRet) const;
     bool SelectCoinsMasternode(CTxIn& vin, int64_t& nValueRet, CScript& pubScript) const;
     bool HasCollateralInputs() const;
@@ -257,7 +257,7 @@ public:
     std::string SendMoney(CScript scriptPubKey, int64_t nValue, CWalletTx& wtxNew, bool fAskFee=false);
     std::string SendMoneyToDestination(const CTxDestination &address, int64_t nValue, CWalletTx& wtxNew, bool fAskFee=false);
 
-    std::string PrepareDarksendDenominate(int minRounds, int maxRounds);
+    std::string PrepareObfuscationDenominate(int minRounds, int maxRounds);
     bool CreateCollateralTransaction(CTransaction& txCollateral, std::string strReason);
     bool ConvertList(std::vector<CTxIn> vCoins, std::vector<int64_t>& vecAmounts);
 
@@ -823,7 +823,7 @@ public:
         return strprintf("COutput(%s, %d, %d) [%s]", tx->GetHash().ToString().substr(0,10).c_str(), i, nDepth, FormatMoney(tx->vout[i].nValue).c_str());
     }
 
-    //Used with Darksend. Will return fees, then denominations, everything else, then very small inputs that aren't fees
+    //Used with Obfuscation. Will return fees, then denominations, everything else, then very small inputs that aren't fees
     int Priority() const
     {
         if(tx->vout[i].nValue == DARKSEND_FEE) return -20000;

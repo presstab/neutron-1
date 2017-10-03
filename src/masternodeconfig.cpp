@@ -84,7 +84,7 @@ bool CMasternodeConfig::CMasternodeEntry::castOutputIndex(int &n)
     try {
         n = std::stoi(outputIndex);
     } catch (const std::exception e) {
-        LogPrintf("%s: %s on getOutputIndex\n", __func__, e.what());
+        printf("%s: %s on getOutputIndex\n", __func__, e.what());
         return false;
     }
 

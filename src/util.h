@@ -154,10 +154,12 @@ inline void MilliSleep(int64_t n)
 
 extern bool fMasterNode;
 extern bool fLiteMode;
-extern int nDarksendRounds;
+extern int nObfuscationRounds;
 extern int nAnonymizeNeutronAmount;
+extern bool fEnableSwiftTX;
+extern int nSwiftTXDepth;
 extern int nLiquidityProvider;
-extern bool fEnableDarksend;
+extern bool fEnableObfuscation;
 extern int64_t enforceMasternodePaymentsTime;
 extern std::string strMasterNodeAddr;
 extern int keysLoaded;

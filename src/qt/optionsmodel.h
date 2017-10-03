@@ -32,7 +32,7 @@ public:
         DetachDatabases,   // bool
         Language,          // QString
         CoinControlFeatures, // bool
-        DarksendRounds,    // int
+        ObfuscationRounds,    // int
         anonymizeNeutronAmount, //int
         OptionIDRowCount,
     };
