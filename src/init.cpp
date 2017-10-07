@@ -540,12 +540,17 @@ bool AppInit2()
     printf("Used data directory %s\n", strDataDir.c_str());
     std::ostringstream strErrors;
 
+    if (mapArgs.count("-sporkkey"))
+    {
+        if (!sporkManager.SetPrivKey(GetArg("-sporkkey", "")))
+            return InitError(_("Unable to sign spork message, wrong key?"));
+    }
+
     if (mapArgs.count("-masternodepaymentskey")) // masternode payments priv key
     {
         if (!masternodePayments.SetPrivKey(GetArg("-masternodepaymentskey", "")))
             return InitError(_("Unable to sign masternode payment winner, wrong key?"));
-        if (!sporkManager.SetPrivKey(GetArg("-masternodepaymentskey", "")))
-            return InitError(_("Unable to sign spork message, wrong key?"));
+
     }
 
     //ignore masternodes below protocol version

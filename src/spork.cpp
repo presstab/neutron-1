@@ -49,7 +49,7 @@ void ProcessSpork(CNode* pfrom, std::string& strCommand, CDataStream& vRecv)
             }
         }
 
-        printf("spork - new %s ID %d Time %d bestHeight %d\n", hash.ToString().c_str(), spork.nSporkID, spork.nValue, pindexBest->nHeight);
+        printf("spork - new %s ID %d Time %ld bestHeight %d\n", hash.ToString().c_str(), spork.nSporkID, spork.nValue, pindexBest->nHeight);
 
         if(!sporkManager.CheckSignature(spork)){
             printf("spork - invalid signature\n");
@@ -87,6 +87,7 @@ bool IsSporkActive(int nSporkID)
         if(nSporkID == SPORK_1_MASTERNODE_PAYMENTS_ENFORCEMENT) r = SPORK_1_MASTERNODE_PAYMENTS_ENFORCEMENT_DEFAULT;
         if(nSporkID == SPORK_2_MAX_VALUE) r = SPORK_2_MAX_VALUE_DEFAULT;
         if(nSporkID == SPORK_3_REPLAY_BLOCKS) r = SPORK_3_REPLAY_BLOCKS_DEFAULT;
+        if(nSporkID == SPORK_4_MASTERNODE_WINNER_ENFORCEMENT) r = SPORK_4_MASTERNODE_WINNER_ENFORCEMENT_DEFAULT;
 
         if(r == 0 && fDebug) printf("GetSpork::Unknown Spork %d\n", nSporkID);
     }
@@ -106,6 +107,7 @@ int GetSporkValue(int nSporkID)
         if(nSporkID == SPORK_1_MASTERNODE_PAYMENTS_ENFORCEMENT) r = SPORK_1_MASTERNODE_PAYMENTS_ENFORCEMENT_DEFAULT;
         if(nSporkID == SPORK_2_MAX_VALUE) r = SPORK_2_MAX_VALUE_DEFAULT;
         if(nSporkID == SPORK_3_REPLAY_BLOCKS) r = SPORK_3_REPLAY_BLOCKS_DEFAULT;
+        if(nSporkID == SPORK_4_MASTERNODE_WINNER_ENFORCEMENT) r = SPORK_4_MASTERNODE_WINNER_ENFORCEMENT_DEFAULT;
 
         if(r == 0 && fDebug) printf("GetSpork::Unknown Spork %d\n", nSporkID);
     }
@@ -216,6 +218,7 @@ int CSporkManager::GetSporkIDByName(std::string strName)
     if(strName == "SPORK_1_MASTERNODE_PAYMENTS_ENFORCEMENT") return SPORK_1_MASTERNODE_PAYMENTS_ENFORCEMENT;
     if(strName == "SPORK_2_MAX_VALUE") return SPORK_2_MAX_VALUE;
     if(strName == "SPORK_3_REPLAY_BLOCKS") return SPORK_3_REPLAY_BLOCKS;
+    if(strName == "SPORK_4_MASTERNODE_WINNER_ENFORCEMENT") return SPORK_4_MASTERNODE_WINNER_ENFORCEMENT;
 
     return -1;
 }
@@ -225,6 +228,7 @@ std::string CSporkManager::GetSporkNameByID(int id)
     if(id == SPORK_1_MASTERNODE_PAYMENTS_ENFORCEMENT) return "SPORK_1_MASTERNODE_PAYMENTS_ENFORCEMENT";
     if(id == SPORK_2_MAX_VALUE) return "SPORK_2_MAX_VALUE";
     if(id == SPORK_3_REPLAY_BLOCKS) return "SPORK_3_REPLAY_BLOCKS";
+    if(id == SPORK_4_MASTERNODE_WINNER_ENFORCEMENT) return "SPORK_4_MASTERNODE_WINNER_ENFORCEMENT";
 
     return "Unknown";
 }
