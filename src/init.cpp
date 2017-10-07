@@ -22,6 +22,7 @@
 #include "activemasternode.h"
 #include "spork.h"
 #include "darksend.h"
+#include "masternodeconfig.h"
 
 #ifndef WIN32
 #include <signal.h>
@@ -910,6 +911,10 @@ bool AppInit2()
 
     if (!CheckDiskSpace())
         return false;
+
+    string mnConfErr = "";
+    if (!masternodeConfig.read(mnConfErr))
+        return InitError("Masternode Conf Error: " + mnConfErr);
 
     fMasterNode = GetBoolArg("-masternode", false);
     if(fMasterNode) {

@@ -1910,6 +1910,8 @@ bool CBlock::ConnectBlock(CTxDB& txdb, CBlockIndex* pindex, bool fJustCheck)
 
             if (!fCorrectNodePaid && IsSporkActive(SPORK_4_MASTERNODE_WINNER_ENFORCEMENT)) {
                 return DoS(100, error("ConnectBlock() : Stake does not pay correct masternode"));
+            } else {
+                printf("ConnectBlock() : Stake does not pay correct masternode, NOT ENFORCED\n");
             }
 
         } else {

@@ -705,16 +705,17 @@ void CMasternodePayments::CleanPaymentList()
 
 bool CMasternodePayments::ProcessBlock(int nBlockHeight)
 {
-    LOCK(cs_masternodes);
+    {
+        LOCK(cs_masternodes);
 
-    std::vector<CTxIn> vecLastPayments;
-    int c = 0;
-    BOOST_REVERSE_FOREACH(CMasternodePaymentWinner& winner, vWinning){
-        vecLastPayments.push_back(winner.vin);
-        //if we have one full payment cycle, break
-        if(++c > (int)vecMasternodes.size()) break;
+        std::vector<CTxIn> vecLastPayments;
+        int c = 0;
+        BOOST_REVERSE_FOREACH(CMasternodePaymentWinner &winner, vWinning) {
+                        vecLastPayments.push_back(winner.vin);
+                        //if we have one full payment cycle, break
+                        if(++c > (int) vecMasternodes.size()) break;
+                    }
     }
-
     CMasternodePaymentWinner winner;
     {
         LOCK(cs_masternodes);
